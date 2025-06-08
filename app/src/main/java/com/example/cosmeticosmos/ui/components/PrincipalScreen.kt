@@ -79,7 +79,7 @@ val TabItems = listOf(
     ),
     TabModel(
         name = "Productos",
-        icon = Icons.Filled.Inventory, // o Icons.Filled.Category si querés
+        icon = Icons.Filled.Inventory,
         route = { ProductScreen() }
     ),
     TabModel(
