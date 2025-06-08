@@ -1,0 +1,8 @@
+/build
+#no mostramos las credenciales de firebase :v
+/app/google-services.json
+#ignorar archivos temporales para mejor rendimiento
+.idea/
+.gradle/
+*.iml
+local.properties

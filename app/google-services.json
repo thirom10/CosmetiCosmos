@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "421230215034",
+    "project_id": "cosmeticosmos-14151",
+    "storage_bucket": "cosmeticosmos-14151.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:421230215034:android:3a3d843812f252c0a0e0c3",
+        "android_client_info": {
+          "package_name": "com.example.cosmeticosmos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfhQ1o9DpdTUs7kXlg36r1wTqwTToGRHc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
