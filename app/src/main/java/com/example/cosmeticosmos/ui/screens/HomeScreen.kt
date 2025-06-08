@@ -15,6 +15,6 @@ fun HomeScreen() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = "Pantalla 0")
+        Text(text = "Estas en Home!")
     }
 }

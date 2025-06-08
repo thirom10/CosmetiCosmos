@@ -10,12 +10,11 @@ import androidx.compose.ui.tooling.preview.Preview
 
 @Preview(showBackground = true)
 @Composable
-fun SalesScreen() {
+fun AnalyticsScreen() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = "Estas en Ventas")
+        Text(text = "Estas en Reportes!")
     }
 }
-

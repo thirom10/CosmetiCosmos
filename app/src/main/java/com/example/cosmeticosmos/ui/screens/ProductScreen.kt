@@ -15,6 +15,6 @@ fun ProductScreen() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = "Pantalla 1")
+        Text(text = "Estas en Productos")
     }
 }

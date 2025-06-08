@@ -12,25 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-
+import com.example.cosmeticosmos.ui.components.*
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(3.dp)
-                    )
+                PrincipalScreen()
             }
         }
     }
-
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "tralalero tralala, $name!",
-        modifier = modifier
-    )
-}
