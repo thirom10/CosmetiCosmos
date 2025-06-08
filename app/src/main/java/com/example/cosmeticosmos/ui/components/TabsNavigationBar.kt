@@ -10,7 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.cosmeticosmos.ui.navigation.TabDestination
+import com.example.cosmeticosmos.ui.navigation.TabRoutes
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun TabsNavigationBar(
@@ -25,8 +26,8 @@ fun TabsNavigationBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(vertical = 8.dp, horizontal = 12.dp)
+                .navigationBarsPadding()
         ) {
             TabRoutes.allTabs.forEach { tab ->
                 val selected = tab.route == currentRoute
@@ -35,7 +36,6 @@ fun TabsNavigationBar(
 
                 Column(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50.dp))
                         .background(background)
                         .clickable { onTabSelected(tab.route) }
                         .padding(horizontal = 18.dp, vertical = 8.dp),
