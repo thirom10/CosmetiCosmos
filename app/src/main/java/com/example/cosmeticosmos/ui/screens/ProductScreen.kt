@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +37,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,49 +50,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.cosmeticosmos.ui.components.TabsNavigationBar
+import com.example.cosmeticosmos.ui.viewmodel.ProductViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.cosmeticosmos.domain.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductScreen() {
+fun ProductScreen(viewModel: ProductViewModel = hiltViewModel()) {
     var showAddProductDialog by remember { mutableStateOf(false) }
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
-    val products = listOf(
-        Product(
-            id = 1,
-            name = "Labial Rosa Intenso",
-            category = "Labiales",
-            price = 25.0,
-            stock = 15,
-            needsRestock = false
-        ),
-        Product(
-            id = 2,
-            name = "Base Líquida Natural",
-            category = "Bases",
-            price = 45.0,
-            stock = 3,
-            needsRestock = true
-        ),
-        Product(
-            id = 3,
-            name = "Máscara de Pestañas",
-            category = "Ojos",
-            price = 30.0,
-            stock = 8,
-            needsRestock = false
-        ),
-        Product(
-            id = 4,
-            name = "Sombras Multicolor",
-            category = "Ojos",
-            price = 35.0,
-            stock = 5,
-            needsRestock = false
-        )
-    )
+    // Obtener productos del ViewModel
+    val products by viewModel.productsState.collectAsState()
+    val error by viewModel.errorState.collectAsState()
+
+    // Cargar productos al iniciar
+    LaunchedEffect(Unit) {
+        viewModel.loadProducts()
+    }
 
     Scaffold(
         topBar = {
@@ -113,6 +89,14 @@ fun ProductScreen() {
         },
         containerColor = Color(0xFFF3E5F5)
     ) { innerPadding ->
+        if (error != null) {
+            Text(
+                text = error!!,
+                color = Color.Red,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+
         LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
@@ -156,14 +140,41 @@ fun ProductScreen() {
         ProductFormDialog(
             title = "Editar Producto",
             product = product,
-            onDismiss = { selectedProduct = null },
+            onDismiss = { selectedProduct },
             onSave = { /* Guardar producto */ }
         )
     }
 }
 
+
+// esto
 @Composable
-fun InventoryOverview(products: List<Product>) {
+fun ProductList(viewModel: ProductViewModel = hiltViewModel()) {
+    val products by viewModel.productsState.collectAsState()
+    val error by viewModel.errorState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadProducts()
+    }
+
+    if (error != null) {
+        Text(text = error!!, color = Color.Red)
+    }
+
+    LazyColumn {
+        items(products) { product ->
+            Column {
+                Text(text = "Nombre: ${product.name}")
+                Text(text = "Categoría: ${product.category}")
+                Text(text = "Precio: $${product.price}")
+                Text(text = "Stock: ${product.stock}")
+            }
+        }
+    }
+}
+
+@Composable
+fun InventoryOverview(products: List<com.example.cosmeticosmos.domain.model.Product>) {
     val activeProducts = products.size
     val goodStockCount = products.count { it.stock > 5 }
     val needsRestockCount = products.count { it.stock <= 5 }
@@ -239,7 +250,7 @@ fun InventoryStatusItem(label: String, value: String) {
 }
 
 @Composable
-fun StockAlerts(products: List<Product>) {
+fun StockAlerts(products: List<com.example.cosmeticosmos.domain.model.Product>) {
     val productsNeedingRestock = products.filter { it.needsRestock }
 
     if (productsNeedingRestock.isNotEmpty()) {
@@ -399,7 +410,7 @@ fun ProductItem(product: Product, onEditClick: () -> Unit) {
 @Composable
 fun ProductFormDialog(
     title: String,
-    product: Product? = null,
+    product: com.example.cosmeticosmos.domain.model.Product? = null,
     onDismiss: () -> Unit,
     onSave: (Product) -> Unit
 ) {
@@ -472,7 +483,7 @@ fun ProductFormDialog(
             Button(
                 onClick = {
                     val newProduct = Product(
-                        id = product?.id ?: 0,
+                        id = product?.id ?: "",
                         name = name,
                         category = category,
                         price = price.toDoubleOrNull() ?: 0.0,
@@ -495,16 +506,6 @@ fun ProductFormDialog(
         }
     }
 }
-
-// Add this to your models package
-data class Product(
-    val id: Int,
-    val name: String,
-    val category: String,
-    val price: Double,
-    val stock: Int,
-    val needsRestock: Boolean
-)
 
 @Preview(showBackground = true)
 @Composable
