@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -28,14 +31,14 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,9 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.cosmeticosmos.ui.viewmodel.ProductViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.cosmeticosmos.domain.model.Product
@@ -59,12 +66,13 @@ import com.example.cosmeticosmos.domain.model.Product
 fun ProductScreen(viewModel: ProductViewModel = hiltViewModel()) {
     var showAddProductDialog by remember { mutableStateOf(false) }
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     // Obtener productos del ViewModel
     val products by viewModel.productsState.collectAsState()
     val error by viewModel.errorState.collectAsState()
 
-    // Cargar productos al iniciar
+    // Cargar productos al iniciar (solo una vez)
     LaunchedEffect(Unit) {
         viewModel.loadProducts()
     }
@@ -72,22 +80,22 @@ fun ProductScreen(viewModel: ProductViewModel = hiltViewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Productos", color = Color.White) },
+                title = { Text("Productos Cosmeticos", color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF7B1FA2)
+                    containerColor = Color(0xFF9C27B0) // Morado más suave
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddProductDialog = true },
-                containerColor = Color(0xFF7B1FA2),
+                containerColor = Color(0xFFE91E63), // Rosa cosmético
                 contentColor = Color.White
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Product")
             }
         },
-        containerColor = Color(0xFFF3E5F5)
+        containerColor = Color(0xFFF8F3F9) // Fondo muy claro con tono morado
     ) { innerPadding ->
         if (error != null) {
             Text(
@@ -101,8 +109,7 @@ fun ProductScreen(viewModel: ProductViewModel = hiltViewModel()) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 InventoryOverview(products)
@@ -114,14 +121,17 @@ fun ProductScreen(viewModel: ProductViewModel = hiltViewModel()) {
                 Text(
                     text = "Tu Catálogo (${products.size})",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color(0xFF7B1FA2),
-                    modifier = Modifier.padding(start = 24.dp, top = 8.dp, bottom = 8.dp)
+                    color = Color(0xFF9C27B0),
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
                 )
             }
             items(products) { product ->
                 ProductItem(
                     product = product,
-                    onEditClick = { selectedProduct = product }
+                    onEditClick = {
+                        selectedProduct = product
+                        keyboardController?.hide()
+                    }
                 )
             }
             item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -131,8 +141,15 @@ fun ProductScreen(viewModel: ProductViewModel = hiltViewModel()) {
     if (showAddProductDialog) {
         ProductFormDialog(
             title = "Agregar Producto",
-            onDismiss = { showAddProductDialog = false },
-            onSave = { /* Guardar producto */ }
+            onDismiss = {
+                showAddProductDialog = false
+                keyboardController?.hide()
+            },
+            onSave = { product ->
+                viewModel.addProduct(product)
+                showAddProductDialog = false
+                keyboardController?.hide()
+            }
         )
     }
 
@@ -140,41 +157,21 @@ fun ProductScreen(viewModel: ProductViewModel = hiltViewModel()) {
         ProductFormDialog(
             title = "Editar Producto",
             product = product,
-            onDismiss = { selectedProduct },
-            onSave = { /* Guardar producto */ }
+            onDismiss = {
+                selectedProduct = null
+                keyboardController?.hide()
+            },
+            onSave = { updatedProduct ->
+                viewModel.updateProduct(updatedProduct)
+                selectedProduct = null
+                keyboardController?.hide()
+            }
         )
     }
 }
 
-
-// esto
 @Composable
-fun ProductList(viewModel: ProductViewModel = hiltViewModel()) {
-    val products by viewModel.productsState.collectAsState()
-    val error by viewModel.errorState.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.loadProducts()
-    }
-
-    if (error != null) {
-        Text(text = error!!, color = Color.Red)
-    }
-
-    LazyColumn {
-        items(products) { product ->
-            Column {
-                Text(text = "Nombre: ${product.name}")
-                Text(text = "Categoría: ${product.category}")
-                Text(text = "Precio: $${product.price}")
-                Text(text = "Stock: ${product.stock}")
-            }
-        }
-    }
-}
-
-@Composable
-fun InventoryOverview(products: List<com.example.cosmeticosmos.domain.model.Product>) {
+fun InventoryOverview(products: List<Product>) {
     val activeProducts = products.size
     val goodStockCount = products.count { it.stock > 5 }
     val needsRestockCount = products.count { it.stock <= 5 }
@@ -182,100 +179,129 @@ fun InventoryOverview(products: List<com.example.cosmeticosmos.domain.model.Prod
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "¡Inventario organizado!",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Tienes $activeProducts productos bien gestionados",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 8.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Resumen de Inventario",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF9C27B0)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF3E5F5))
+                        .padding(4.dp)
+                ) {
+                    Text(
+                        text = "$activeProducts productos",
+                        color = Color(0xFF9C27B0),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Gestiona tu inventario",
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = "$activeProducts productos registrados",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Estado del Inventario",
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(bottom = 8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                InventoryStatusItem("Productos activos", "$activeProducts")
-                InventoryStatusItem("Con stock bueno", "$goodStockCount")
-                InventoryStatusItem("Necesitan stock", "$needsRestockCount")
+                InventoryStatusItem("Stock Bueno", "$goodStockCount", Color(0xFF4CAF50))
+                InventoryStatusItem("Necesitan Stock", "$needsRestockCount", Color(0xFFF44336))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Divider()
+            Divider(color = Color(0xFFF3E5F5), thickness = 1.dp)
         }
     }
 }
 
 @Composable
-fun InventoryStatusItem(label: String, value: String) {
+fun InventoryStatusItem(label: String, value: String, color: Color) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(color.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
         )
     }
 }
 
 @Composable
-fun StockAlerts(products: List<com.example.cosmeticosmos.domain.model.Product>) {
+fun StockAlerts(products: List<Product>) {
     val productsNeedingRestock = products.filter { it.needsRestock }
 
     if (productsNeedingRestock.isNotEmpty()) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFFFF3E0)
+                containerColor = Color(0xFFFFF3F3)
             ),
-            elevation = CardDefaults.cardElevation(2.dp)
+            elevation = CardDefaults.cardElevation(2.dp),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                Text(
-                    text = "¡Atención al Stock!",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Es momento de reabastecer estos productos",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 4.dp))
-
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFFF44336).copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "!",
+                            color = Color(0xFFF44336),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Productos con Stock Bajo",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF44336)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -289,13 +315,15 @@ fun StockAlerts(products: List<com.example.cosmeticosmos.domain.model.Product>) 
                         Text(
                             text = product.name,
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "Solo ${product.stock}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Red
+                            color = Color(0xFFF44336)
                         )
                     }
                 }
@@ -305,76 +333,54 @@ fun StockAlerts(products: List<com.example.cosmeticosmos.domain.model.Product>) 
 }
 
 @Composable
-fun ProductCatalog(products: List<Product>, onEditProduct: (Product) -> Unit) {
-    Column(
-        modifier = Modifier.padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Tu Catálogo (${products.size})",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            // Optional: Add filter/sort controls here
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(products) { product ->
-                ProductItem(
-                    product = product,
-                    onEditClick = { onEditProduct(product) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun ProductItem(product: Product, onEditClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = product.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = product.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = product.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
 
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { onEditClick() },
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                IconButton(
+                    onClick = onEditClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = Color(0xFF9C27B0)
+                    )
+                }
             }
 
-            Text(
-                text = product.category,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(top = 4.dp))
-
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -384,7 +390,8 @@ fun ProductItem(product: Product, onEditClick: () -> Unit) {
                 Text(
                     text = "$${"%.2f".format(product.price)}",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE91E63)
                 )
 
                 Box(
@@ -393,7 +400,7 @@ fun ProductItem(product: Product, onEditClick: () -> Unit) {
                         .background(
                             if (product.needsRestock) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
                         )
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "Stock: ${product.stock}",
@@ -406,102 +413,124 @@ fun ProductItem(product: Product, onEditClick: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductFormDialog(
     title: String,
-    product: com.example.cosmeticosmos.domain.model.Product? = null,
+    product: Product? = null,
     onDismiss: () -> Unit,
     onSave: (Product) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
+    var name by remember { mutableStateOf(product?.name ?: "") }
+    var category by remember { mutableStateOf(product?.category ?: "") }
+    var price by remember { mutableStateOf(product?.price?.toString() ?: "") }
+    var stock by remember { mutableStateOf(product?.stock?.toString() ?: "") }
 
-    ModalBottomSheet(
+    Dialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        modifier = Modifier.height(600.dp)
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Column(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp))
-
-
-            var name by remember { mutableStateOf(product?.name ?: "") }
-            var category by remember { mutableStateOf(product?.category ?: "") }
-            var price by remember { mutableStateOf(product?.price?.toString() ?: "") }
-            var stock by remember { mutableStateOf(product?.stock?.toString() ?: "") }
-
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Nombre del producto") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp))
-
-
-            OutlinedTextField(
-                value = category,
-                onValueChange = { category = it },
-                label = { Text("Categoría") },
-                trailingIcon = {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select category")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp))
-
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier.padding(24.dp)
             ) {
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it },
-                    label = { Text("Precio") },
-                    modifier = Modifier.weight(1f)
-                )
-
-                OutlinedTextField(
-                    value = stock,
-                    onValueChange = { stock = it },
-                    label = { Text("Stock") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    val newProduct = Product(
-                        id = product?.id ?: "",
-                        name = name,
-                        category = category,
-                        price = price.toDoubleOrNull() ?: 0.0,
-                        stock = stock.toIntOrNull() ?: 0,
-                        needsRestock = (stock.toIntOrNull() ?: 0) <= 5
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF9C27B0)
                     )
-                    onSave(newProduct)
-                    onDismiss()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.Gray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nombre del producto") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    shape = RoundedCornerShape(8.dp)
                 )
-            ) {
-                Text("Guardar")
+
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Categoría") },
+                    trailingIcon = {
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = "Select category")
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = price,
+                        onValueChange = { price = it },
+                        label = { Text("Precio") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = stock,
+                        onValueChange = { stock = it },
+                        label = { Text("Stock") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = {
+                        val newProduct = Product(
+                            id = product?.id ?: "",
+                            name = name,
+                            category = category,
+                            price = price.toDoubleOrNull() ?: 0.0,
+                            stock = stock.toIntOrNull() ?: 0,
+                            needsRestock = (stock.toIntOrNull() ?: 0) <= 5
+                        )
+                        onSave(newProduct)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Guardar Producto", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

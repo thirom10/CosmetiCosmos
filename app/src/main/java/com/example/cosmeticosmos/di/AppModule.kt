@@ -3,7 +3,9 @@ package com.example.cosmeticosmos.di
 import com.example.cosmeticosmos.data.repository.ProductRepositoryImp
 import com.example.cosmeticosmos.data.service.ProductService
 import com.example.cosmeticosmos.domain.repository.ProductRepository
+import com.example.cosmeticosmos.domain.usecase.CreateProductCase
 import com.example.cosmeticosmos.domain.usecase.GetProductsCase
+import com.example.cosmeticosmos.domain.usecase.UpdateProductCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,4 +34,17 @@ object AppModule {
     fun provideGetProductsCase(repository: ProductRepository): GetProductsCase {
         return GetProductsCase(repository)
     }
+
+    @Provides
+    @Singleton
+    fun provideCreateProductCase(repository: ProductRepository): CreateProductCase {
+        return CreateProductCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUpdateProductCase(repository: ProductRepository): UpdateProductCase {
+        return UpdateProductCase(repository)
+    }
+
 }
