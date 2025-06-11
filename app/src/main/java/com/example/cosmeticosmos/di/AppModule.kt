@@ -1,7 +1,10 @@
 package com.example.cosmeticosmos.di
 
+import com.example.cosmeticosmos.data.repository.OrdersRepositoryImp
 import com.example.cosmeticosmos.data.repository.ProductRepositoryImp
+import com.example.cosmeticosmos.data.service.OrdersService
 import com.example.cosmeticosmos.data.service.ProductService
+import com.example.cosmeticosmos.domain.repository.OrdersRepository
 import com.example.cosmeticosmos.domain.repository.ProductRepository
 import com.example.cosmeticosmos.domain.usecase.CreateProductCase
 import com.example.cosmeticosmos.domain.usecase.GetProductsCase
@@ -45,6 +48,17 @@ object AppModule {
     @Singleton
     fun provideUpdateProductCase(repository: ProductRepository): UpdateProductCase {
         return UpdateProductCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOrdersService(): OrdersService {
+        return OrdersService()
+    }
+
+    @Provides
+    fun provideOrdersRepository(service: OrdersService): OrdersRepository {
+        return OrdersRepositoryImp(service)
     }
 
 }
